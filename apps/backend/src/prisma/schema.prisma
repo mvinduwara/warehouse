@@ -1,0 +1,331 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  manager
+  operator
+  viewer
+}
+
+enum StockStatus {
+  in_stock
+  low
+  critical
+  out_of_stock
+}
+
+enum POStatus {
+  draft
+  confirmed
+  shipped
+  in_transit
+  received
+  cancelled
+}
+
+enum SOStatus {
+  processing
+  picking
+  packing
+  dispatched
+  delivered
+  cancelled
+}
+
+enum TransferStatus {
+  draft
+  in_transit
+  completed
+  cancelled
+}
+
+enum ActivityType {
+  received
+  shipped
+  alert
+  transfer
+  cycle_count
+  adjustment
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  passwordHash    String
+  role            Role     @default(operator)
+  avatarInitials  String
+  isActive        Boolean  @default(true)
+  lastLoginAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseOrders  PurchaseOrder[]
+  salesOrders     SalesOrder[]
+  transfers       Transfer[]
+  adjustments     StockAdjustment[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model Zone {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  label          String
+  category       String
+  totalCapacity  Int      @default(1000)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  locations      WarehouseLocation[]
+
+  @@map("zones")
+}
+
+model WarehouseLocation {
+  id           String   @id @default(cuid())
+  zoneId       String
+  rack         String
+  bin          String
+  label        String   @unique
+  maxCapacity  Int      @default(100)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  zone                Zone              @relation(fields: [zoneId], references: [id])
+  inventoryLevels     InventoryLevel[]
+  fromTransfers       Transfer[]        @relation("FromLocation")
+  toTransfers         Transfer[]        @relation("ToLocation")
+  poReceiptLines      POReceiptLine[]
+
+  @@unique([zoneId, rack, bin])
+  @@map("warehouse_locations")
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  sku            String   @unique
+  name           String
+  category       String
+  barcode        String?  @unique
+  unitOfMeasure  String   @default("ea")
+  unitCost       Decimal  @db.Decimal(12, 2)
+  sellingPrice   Decimal  @db.Decimal(12, 2)
+  reorderPoint   Int      @default(50)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  inventoryLevels     InventoryLevel[]
+  purchaseOrderItems  PurchaseOrderItem[]
+  salesOrderItems     SalesOrderItem[]
+  transfers           Transfer[]
+  adjustments         StockAdjustment[]
+
+  @@map("products")
+}
+
+model InventoryLevel {
+  id                String   @id @default(cuid())
+  productId         String
+  locationId        String
+  quantityOnHand    Int      @default(0)
+  quantityReserved  Int      @default(0)
+  updatedAt         DateTime @updatedAt
+
+  product           Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  location          WarehouseLocation @relation(fields: [locationId], references: [id])
+
+  @@unique([productId, locationId])
+  @@map("inventory_levels")
+}
+
+model StockAdjustment {
+  id          String   @id @default(cuid())
+  productId   String
+  locationId  String
+  delta       Int
+  reason      String
+  performedBy String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  product     Product  @relation(fields: [productId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("stock_adjustments")
+}
+
+model Supplier {
+  id                  String   @id @default(cuid())
+  name                String
+  contactEmail        String
+  contactPhone        String?
+  address             String?
+  onTimeDeliveryRate  Decimal  @default(90) @db.Decimal(5, 2)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  purchaseOrders      PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+model PurchaseOrder {
+  id            String    @id @default(cuid())
+  poNumber      String    @unique
+  supplierId    String
+  createdById   String
+  totalItems    Int       @default(0)
+  totalValue    Decimal   @default(0) @db.Decimal(14, 2)
+  expectedDate  DateTime
+  receivingDock String    @default("Dock A")
+  status        POStatus  @default(draft)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  supplier      Supplier            @relation(fields: [supplierId], references: [id])
+  createdBy     User                @relation(fields: [createdById], references: [id])
+  items         PurchaseOrderItem[]
+  receiptLines  POReceiptLine[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String   @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  orderedQty      Int
+  receivedQty     Int      @default(0)
+  unitCost        Decimal  @db.Decimal(12, 2)
+  createdAt       DateTime @default(now())
+
+  purchaseOrder   PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product        @relation(fields: [productId], references: [id])
+  receiptLines    POReceiptLine[]
+
+  @@map("purchase_order_items")
+}
+
+model POReceiptLine {
+  id                  String   @id @default(cuid())
+  purchaseOrderId     String
+  purchaseOrderItemId String
+  locationId          String
+  receivedQty         Int
+  receivedAt          DateTime @default(now())
+
+  purchaseOrder       PurchaseOrder     @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderItem   PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id])
+  location            WarehouseLocation @relation(fields: [locationId], references: [id])
+
+  @@map("po_receipt_lines")
+}
+
+model SalesOrder {
+  id              String    @id @default(cuid())
+  soNumber        String    @unique
+  customerName    String
+  customerId      String?
+  createdById     String
+  totalItems      Int       @default(0)
+  totalValue      Decimal   @default(0) @db.Decimal(14, 2)
+  requiredBy      DateTime
+  carrier         String?
+  trackingNumber  String?
+  shippingAddress String
+  status          SOStatus  @default(processing)
+  isUrgent        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  createdBy       User             @relation(fields: [createdById], references: [id])
+  items           SalesOrderItem[]
+
+  @@map("sales_orders")
+}
+
+model SalesOrderItem {
+  id           String   @id @default(cuid())
+  salesOrderId String
+  productId    String
+  orderedQty   Int
+  pickedQty    Int      @default(0)
+  unitPrice    Decimal  @db.Decimal(12, 2)
+  createdAt    DateTime @default(now())
+
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product      Product    @relation(fields: [productId], references: [id])
+
+  @@map("sales_order_items")
+}
+
+model Transfer {
+  id             String         @id @default(cuid())
+  transferNumber String         @unique
+  fromLocationId String
+  toLocationId   String
+  productId      String
+  quantity       Int
+  reason         String
+  status         TransferStatus @default(draft)
+  createdById    String
+  completedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  fromLocation   WarehouseLocation @relation("FromLocation", fields: [fromLocationId], references: [id])
+  toLocation     WarehouseLocation @relation("ToLocation", fields: [toLocationId], references: [id])
+  product        Product           @relation(fields: [productId], references: [id])
+  createdBy      User              @relation(fields: [createdById], references: [id])
+
+  @@map("transfers")
+}
+
+model ActivityLog {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  message   String
+  reference String
+  location  String?
+  metadata  Json?
+  createdAt DateTime     @default(now())
+
+  @@map("activity_logs")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entity     String
+  entityId   String
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
