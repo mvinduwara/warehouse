@@ -244,6 +244,7 @@ export const warehouseService = {
   },
 
   async createTransfer(input: CreateTransferInput, userId: string) {
+    // Validate sufficient stock at source
     const fromLevel = await prisma.inventoryLevel.findUnique({
       where: {
         productId_locationId: {
@@ -301,6 +302,7 @@ export const warehouseService = {
       );
     }
 
+    // Deduct stock from source location when sending
     await prisma.inventoryLevel.update({
       where: {
         productId_locationId: {
@@ -344,6 +346,7 @@ export const warehouseService = {
       );
     }
 
+    // Add stock to destination location
     await prisma.inventoryLevel.upsert({
       where: {
         productId_locationId: {
@@ -373,7 +376,7 @@ export const warehouseService = {
       },
     });
 
-  
+    // Emit real-time event if SSE hub is available
     try {
       const { emitTransferUpdate } = await import(
         "../realtime/sse.service.js"
