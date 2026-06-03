@@ -1,0 +1,9 @@
+{
+  "name": "wms-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/*' dev",
+    "build": "pnpm --filter './apps/*' build",
+    "lint": "pnpm --recursive lint"
+  }
+}
