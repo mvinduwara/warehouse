@@ -125,7 +125,6 @@ export interface CategoryDistribution {
 }
 
 export const inventoryService = {
-  // Dashboard
   getDashboardStats: () => api.get<DashboardStats>("/dashboard/stats"),
 
   getStockTrend: (days = 30) =>
@@ -140,7 +139,6 @@ export const inventoryService = {
   getCategoryDistribution: () =>
     api.get<CategoryDistribution[]>("/dashboard/categories"),
 
-  // Products
   getProducts: (filters: ProductsFilters = {}) =>
     api.get<PaginatedResponse<ProductWithStock>>(
       `/products${buildQueryString(filters)}`
@@ -156,7 +154,6 @@ export const inventoryService = {
 
   deleteProduct: (id: string) => api.delete<void>(`/products/${id}`),
 
-  // Inventory Levels
   getLowStockItems: () =>
     api.get<ProductWithStock[]>("/inventory-levels/low-stock"),
 
@@ -168,4 +165,30 @@ export const inventoryService = {
 
   getStockAdjustments: (productId: string) =>
     api.get<StockAdjustment[]>(`/stock-adjustments?productId=${productId}`),
+
+  importCsv: async (file: File): Promise<{
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: Array<{ row: number; sku: string; error: string }>;
+}> => {
+  const token = (await import("../store/authStore.js")).useAuthStore.getState().token;
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE_URL}/products/import-csv`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error((body as { message?: string }).message ?? "CSV import failed.");
+  }
+  return response.json();
+},
+
+downloadCsvTemplate: () =>
+  api.get<string>("/products/csv-template"),
 };
