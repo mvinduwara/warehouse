@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
-import fp from "fastify-plugin";
+import fastifyMultipart from "@fastify/multipart";
 import { env } from "./config/env.js";
 import authPlugin from "./plugins/auth.plugin.js";
 import swaggerPlugin from "./plugins/swagger.plugin.js";
@@ -11,7 +11,6 @@ import { ordersRoutes } from "./modules/orders/orders.routes.js";
 import { warehouseRoutes } from "./modules/warehouse/warehouse.routes.js";
 import { reportsRoutes } from "./modules/reports/reports.routes.js";
 import { usersRoutes } from "./modules/users/users.routes.js";
-import fastifyMultipart from "@fastify/multipart";
 import { sseRoutes } from "./modules/realtime/sse.routes.js";
 
 export async function buildApp() {
@@ -20,13 +19,16 @@ export async function buildApp() {
       level: env.NODE_ENV === "production" ? "warn" : "info",
       transport:
         env.NODE_ENV !== "production"
-          ? { target: "pino-pretty", options: { colorize: true, translateTime: "HH:MM:ss" } }
+          ? {
+              target: "pino-pretty",
+              options: { colorize: true, translateTime: "HH:MM:ss" },
+            }
           : undefined,
     },
     trustProxy: true,
   });
 
-  // ── CORS ──────────────────────────────────────────────────────────────
+  // CORS
   await app.register(fastifyCors, {
     origin: env.CORS_ORIGIN.split(",").map((o) => o.trim()),
     credentials: true,
@@ -34,19 +36,16 @@ export async function buildApp() {
     allowedHeaders: ["Content-Type", "Authorization"],
   });
 
+  // Multipart (CSV upload)
   await app.register(fastifyMultipart, {
-    limits: {
-      fileSize: 10 * 1024 * 1024,
-      files: 1,
-    },
+    limits: { fileSize: 10 * 1024 * 1024, files: 1 },
   });
 
-  // ── Plugins ───────────────────────────────────────────────────────────
+  // Plugins
   await app.register(authPlugin);
   await app.register(swaggerPlugin);
-  await app.register(sseRoutes);
 
-  // ── Health check ──────────────────────────────────────────────────────
+  // Health check
   app.get("/health", async () => ({
     status: "ok",
     timestamp: new Date().toISOString(),
@@ -54,7 +53,7 @@ export async function buildApp() {
     env: env.NODE_ENV,
   }));
 
-  // ── Routes ────────────────────────────────────────────────────────────
+  // Routes
   await app.register(authRoutes);
   await app.register(productsRoutes);
   await app.register(dashboardRoutes);
@@ -62,8 +61,9 @@ export async function buildApp() {
   await app.register(warehouseRoutes);
   await app.register(reportsRoutes);
   await app.register(usersRoutes);
+  await app.register(sseRoutes);
 
-  // ── Global error handler ──────────────────────────────────────────────
+  // Global error handler
   app.setErrorHandler((error, _request, reply) => {
     app.log.error(error);
     reply.status(error.statusCode ?? 500).send({
@@ -73,7 +73,7 @@ export async function buildApp() {
     });
   });
 
-  // ── 404 handler ───────────────────────────────────────────────────────
+  // 404 handler
   app.setNotFoundHandler((_request, reply) => {
     reply.status(404).send({
       statusCode: 404,

@@ -168,7 +168,7 @@ export default function TransfersPage() {
       </div>
 
       {/* Create Transfer Modal */}
-      {activeModal === "create-transfer" && (
+      {/* {activeModal === "create-transfer" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => closeModal()}>
           <div className="w-[440px] rounded-[16px] border border-[#2a2f42] bg-[#13161e] p-6" onClick={(e) => e.stopPropagation()}>
             <div className="mb-5 flex items-center justify-between">
@@ -204,5 +204,18 @@ export default function TransfersPage() {
                 {errors.productId && <p className="mt-1 text-[11px] text-[#f87171]">{errors.productId.message}</p>}
               </div>
               <div>
-                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.5px] text-[#555d73]">Quantity</label>
-                <input {...register("quantity")} type="number" min="1" step="1" className="w-full rounded-[10px] border border-[#2a2f4
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.5px] text-[#555d73]">
+                  Quantity
+                </label>
+                <input
+                  {...register("quantity")}
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="0"
+                  className="w-full rounded-[10px] border border-[#2a2f42] bg-[#1a1e28] px-3 py-2.5 font-['JetBrains_Mono',monospace] text-[13px] text-[#e8eaf0] outline-none focus:border-[#4ade80]"
+                />
+                {errors.quantity && (
+                  <p className="mt-1 text-[11px] text-[#f87171]">{errors.quantity.message}</p>
+                )}
+              </div> */}

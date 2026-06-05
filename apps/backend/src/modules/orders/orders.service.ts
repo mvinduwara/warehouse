@@ -1,14 +1,11 @@
 import { prisma } from "../../lib/prisma.js";
 import { NotFoundError, ValidationError } from "../../lib/errors.js";
-import {
-  getPaginationArgs,
-  buildPaginatedResult,
-} from "../../lib/pagination.js";
-import {
-  generatePoNumber,
-  generateSoNumber,
-} from "../../lib/counters.js";
-import type { POStatus, SOStatus, Prisma } from "@prisma/client";
+import { getPaginationArgs, buildPaginatedResult } from "../../lib/pagination.js";
+import { generatePoNumber, generateSoNumber } from "../../lib/counters.js";
+import type { Prisma } from "@prisma/client";
+
+type POStatus = "draft" | "confirmed" | "shipped" | "in_transit" | "received" | "cancelled";
+type SOStatus = "processing" | "picking" | "packing" | "dispatched" | "delivered" | "cancelled";
 
 export interface CreatePOInput {
   supplierId: string;

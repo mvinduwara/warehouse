@@ -1,10 +1,8 @@
 import { prisma } from "../../lib/prisma.js";
-import {
-  NotFoundError,
-  ValidationError,
-} from "../../lib/errors.js";
+import { NotFoundError, ValidationError } from "../../lib/errors.js";
 import { generateTransferNumber } from "../../lib/counters.js";
-import type { TransferStatus } from "@prisma/client";
+
+type TransferStatus = "draft" | "in_transit" | "completed" | "cancelled";
 
 export interface CreateTransferInput {
   fromLocationId: string;

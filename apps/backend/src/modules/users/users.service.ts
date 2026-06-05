@@ -2,7 +2,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../../lib/prisma.js";
 import { NotFoundError, ConflictError } from "../../lib/errors.js";
 import { env } from "../../config/env.js";
-import type { Role } from "@prisma/client";
+
+type Role = "admin" | "manager" | "operator" | "viewer";
 
 export interface InviteUserInput {
   email: string;

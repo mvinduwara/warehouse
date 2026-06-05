@@ -1,7 +1,8 @@
-import { PrismaClient, Role, POStatus, SOStatus, TransferStatus, ActivityType } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import pkg from "@prisma/client";
+const { PrismaClient, Role, POStatus, SOStatus, TransferStatus, ActivityType } = pkg;
 
 const prisma = new PrismaClient();
+import bcrypt from "bcryptjs";
 
 async function main() {
   console.log("🌱 Seeding database...");

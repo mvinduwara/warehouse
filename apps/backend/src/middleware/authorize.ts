@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { ForbiddenError, sendError } from "../lib/errors.js";
-import type { Role } from "@prisma/client";
+
+type Role = "admin" | "manager" | "operator" | "viewer";
 
 const ROLE_HIERARCHY: Record<Role, number> = {
   admin: 4,

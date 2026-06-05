@@ -34,4 +34,4 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
   });
 };
 
-export default fp(swaggerPlugin);
+export default fp(swaggerPlugin, { name: "swagger" });

@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
-import { subDays, format, startOfMonth, subMonths } from "date-fns";
+import { subDays, format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
 export const dashboardService = {
   async getStats() {
